@@ -4,11 +4,17 @@ import CoolProp.CoolProp as CP
 # App Configuration
 st.set_page_config(page_title="Capillary Sizing Tool", layout="wide")
 
-# === MAXIMUM COMPRESSION CSS INJECTION ===
+# === MAXIMUM COMPRESSION CSS INJECTION WITH TOP-GAP REMOVAL ===
 st.markdown("""
     <style>
+        /* Hide the default transparent Streamlit header area entirely */
+        [data-testid="stHeader"] {
+            display: none !important;
+            height: 0px !important;
+        }
+        /* Force top padding to absolute zero */
         .block-container {
-            padding-top: 0.5rem !important;
+            padding-top: 0rem !important;
             padding-bottom: 0.5rem !important;
             padding-left: 1.5rem !important;
             padding-right: 1.5rem !important;
@@ -124,24 +130,20 @@ if calculate_clicked:
         dT_sc = subcooling_f * 5/9
         dT_sh = superheat_f * 5/9
         
-        # Pressure evaluation bounds
         P_cond = CP.PropsSI('P', 'T', T_cond, 'Q', 0, refrigerant)
         P_suct = CP.PropsSI('P', 'T', T_evap, 'Q', 1, refrigerant)
         
-        # Absolute real enthalpy values mapping
         h_cap_in = CP.PropsSI('H', 'T', T_cond - dT_sc, 'P', P_cond, refrigerant)
         h_evap_out = CP.PropsSI('H', 'T', T_evap + dT_sh, 'P', P_suct, refrigerant)
         
         refrigeration_effect = h_evap_out - h_cap_in
         m_dot = (btu_h * 0.293071) / refrigeration_effect
         
-        # Thermodynamic state values extraction
         v_fc = 1 / CP.PropsSI('D', 'T', T_cond - dT_sc, 'P', P_cond, refrigerant)
         mu_fc = CP.PropsSI('V', 'T', T_cond - dT_sc, 'P', P_cond, refrigerant)
         Cp_fc = CP.PropsSI('C', 'T', T_cond - dT_sc, 'P', P_cond, refrigerant)
         mu_gc = CP.PropsSI('V', 'T', T_cond, 'Q', 1, refrigerant)
         
-        # Dimensionless Pi parameters mapping
         pi_3 = L_hx / D_c
         pi_5 = (P_cond * (D_c**2)) / ((mu_fc**2) * v_fc)
         pi_6 = (P_suct * (D_c**2)) / ((mu_fc**2) * v_fc)
@@ -150,7 +152,6 @@ if calculate_clicked:
         pi_11 = (mu_fc - mu_gc) / mu_fc
         pi_9 = m_dot / (D_c * mu_fc)
         
-        # Sizing mathematical correlation execution
         coefficient_product = (0.07602 * (pi_3**0.07751) * (pi_5**0.7342) * (pi_6**-0.1204) * (pi_7**0.03774) * (pi_8**-0.04085) * (pi_11**0.1768))
         pi_1 = (pi_9 / coefficient_product) ** (1 / -0.4583)
         
@@ -158,7 +159,6 @@ if calculate_clicked:
         L_c_inches = L_c_feet * 12
         L_c_meters = L_c_feet * 0.3048
         
-        # Final Dense Sizing Output Grid
         res_col1, res_col2, res_col3 = st.columns(3)
         with res_col1:
             st.info(f"**Tube ID:** {tube_id_in}\"")
