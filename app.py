@@ -5,78 +5,138 @@ from streamlit.components.v1 import html
 # App Configuration & Title
 st.set_page_config(page_title="Capillary Sizing Tool", layout="wide")
 
+# === ULTRA-COMPACT CUSTOM FRONTEND CSS INJECTION ===
+# This shrinks font sizes, slims sliders, removes massive padding/margins,
+# and forces everything to sit in a single compact dashboard screen view.
+st.markdown("""
+    <style>
+        /* Remove default main block spacing */
+        .block-container {
+            padding-top: 1rem !important;
+            padding-bottom: 0.5rem !important;
+            padding-left: 2rem !important;
+            padding-right: 2rem !important;
+            max-width: 100% !important;
+        }
+        /* Compress spacing between Streamlit widgets */
+        [data-testid="stVerticalBlock"] > div {
+            padding-top: 0.1rem !important;
+            padding-bottom: 0.1rem !important;
+            margin-top: 0.1rem !important;
+        }
+        /* Tighten column gaps */
+        [data-testid="stHorizontalBlock"] {
+            gap: 1.5rem !important;
+        }
+        /* Tighten headers and subheaders */
+        h1 {
+            font-size: 1.6rem !important;
+            margin-bottom: 0.2rem !important;
+            padding-bottom: 0px !important;
+        }
+        h3 {
+            font-size: 1.05rem !important;
+            margin-top: 0.3rem !important;
+            margin-bottom: 0.2rem !important;
+        }
+        /* Compact text inputs, sliders, and drop-downs */
+        div[data-baseweb="select"], div[data-baseweb="input"] {
+            min-height: 28px !important;
+            height: 32px !important;
+        }
+        .stSlider {
+            padding-top: 0px !important;
+            padding-bottom: 0px !important;
+            margin-bottom: 0.2rem !important;
+        }
+        /* Compact typography */
+        .stMarkdown p, label, span {
+            font-size: 0.88rem !important;
+            line-height: 1.2 !important;
+        }
+        .stCaption p {
+            font-size: 0.78rem !important;
+            margin-top: 0px !important;
+            margin-bottom: 0.1rem !important;
+        }
+        /* Shrink spacing inside output cards */
+        .stAlert {
+            padding: 6px 12px !important;
+            margin-bottom: 0.3rem !important;
+        }
+        /* Slim down visual dividers */
+        hr {
+            margin-top: 0.4rem !important;
+            margin-bottom: 0.4rem !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- MOBILE ROTATION DETECTOR (JavaScript Snippet) ---
-# This checks if the screen width is narrow (mobile vertical view)
-# If it is, it injects a warning banner at the top of the webpage.
 mobile_check_js = """
 <script>
     function checkOrientation() {
         const width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
         const banner = document.getElementById('rotation-banner');
-        if (width < 768) {
-            banner.style.display = 'block';
-        } else {
-            banner.style.display = 'none';
-        }
+        if (width < 768) { banner.style.display = 'block'; } else { banner.style.display = 'none'; }
     }
-    // Run on load and on resize
-    window.onload = checkOrientation;
-    window.onresize = checkOrientation;
+    window.onload = checkOrientation; window.onresize = checkOrientation;
 </script>
-<div id="rotation-banner" style="display:none; background-color: #ffcc00; color: #333; padding: 12px; text-align: center; font-weight: bold; font-family: sans-serif; border-radius: 5px; margin-bottom: 15px;">
-    🔄 For the best experience on mobile, please rotate your phone to Landscape (Horizontal) mode!
+<div id="rotation-banner" style="display:none; background-color: #ffcc00; color: #333; padding: 6px; text-align: center; font-size: 12px; font-weight: bold; font-family: sans-serif; border-radius: 4px; margin-bottom: 8px;">
+    🔄 Mobile users: Rotate to Landscape mode for the best view!
 </div>
 """
-# Render the script/banner at the absolute top of the app
-html(mobile_check_js, height=55)
+html(mobile_check_js, height=35)
 
-# --- REST OF YOUR CALCULATOR CODE ---
-st.title("⚡ Professional Capillary Tube Sizing Dashboard")
-st.write("Based on the Wolf and Pate 2002 Correlation.")
-st.markdown("---")
+# --- MAIN UI DASHBOARD LAYOUT ---
+st.title("⚡ Capillary Tube Sizing Dashboard (Wolf & Pate 2002)")
 
 def get_application_class(evap_f):
-    if evap_f <= -10:
-        return "LBP (Low Back Pressure / Freezer)"
-    elif -10 < evap_f <= 20:
-        return "MBP (Medium Back Pressure / Cooler)"
-    else:
-        return "HBP (High Back Pressure / AC)"
+    if evap_f <= -10: return "LBP (Low Pressure / Freezer)"
+    elif -10 < evap_f <= 20: return "MBP (Medium Pressure / Cooler)"
+    else: return "HBP (High Pressure / AC)"
 
-# Create two side-by-side columns
-col1, col2 = st.columns([1, 1], gap="large")
+# Two-column grid setup
+col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.subheader("📋 System Specifications")
-    refrigerant = st.selectbox("Select Refrigerant Molecule", ["R134a", "R600a", "R22", "R404A"])
-    btu_h = st.number_input("System Thermal Capacity (Btu/h)", min_value=100, max_value=50000, value=1000, step=50)
+    st.subheader("📋 System Specifications & Temps")
     
-    st.markdown("---")
-    st.subheader("🌡️ Operating Temperatures")
-    
-    evap_temp_f = st.slider("Evaporator Temperature (°F)", -40, 50, -10)
+    # Pack input components tightly side-by-side using inner rows
+    subcol1, subcol2 = st.columns(2)
+    with subcol1:
+        refrigerant = st.selectbox("Refrigerant", ["R134a", "R600a", "R22", "R404A"])
+    with subcol2:
+        btu_h = st.number_input("Capacity (Btu/h)", min_value=100, max_value=50000, value=1000, step=50)
+        
+    evap_temp_f = st.slider("Evaporator Temp (°F)", -40, 50, -10)
     evap_temp_c = (evap_temp_f - 32) * 5/9
-    st.caption(f"Selected Evap: **{evap_temp_f}°F ({evap_temp_c:.1f}°C)** | **{get_application_class(evap_temp_f)}**")
+    st.caption(f"Evap: **{evap_temp_f}°F ({evap_temp_c:.1f}°C)** | **{get_application_class(evap_temp_f)}**")
     
-    cond_temp_f = st.slider("Condensing Temperature (°F)", 60, 150, 120)
+    cond_temp_f = st.slider("Condensing Temp (°F)", 60, 150, 120)
     cond_temp_c = (cond_temp_f - 32) * 5/9
-    st.caption(f"Selected Condenser: **{cond_temp_f}°F ({cond_temp_c:.1f}°C)**")
+    st.caption(f"Condenser: **{cond_temp_f}°F ({cond_temp_c:.1f}°C)**")
     
-    st.markdown("---")
-    st.subheader("📐 Capillary & Piping Dimensions")
-    
-    subcooling_f = st.number_input("Liquid Subcooling (°F)", value=5)
-    superheat_f = st.number_input("Return Gas Superheat (°F)", value=10)
-    tube_id_in = st.selectbox("Capillary Tube I.D. (Inch)", [0.026, 0.028, 0.031, 0.036, 0.040, 0.042, 0.049, 0.052, 0.064])
-    L_hx_in = st.number_input("Suction Line Heat Exchange Length (Inches)", value=36)
-    
-    calculate_clicked = st.button("🚀 Calculate Required Sizing Parameters", use_container_width=True)
+    st.subheader("📐 Dimensions & Subcooling")
+    subcol3, subcol4 = st.columns(2)
+    with subcol3:
+        subcooling_f = st.number_input("Subcooling (°F)", value=5)
+    with subcol4:
+        superheat_f = st.number_input("Superheat (°F)", value=10)
+        
+    subcol5, subcol6 = st.columns(2)
+    with subcol5:
+        tube_id_in = st.selectbox("Tube I.D. (Inch)", [0.026, 0.028, 0.031, 0.036, 0.040, 0.042, 0.049, 0.052, 0.064])
+    with subcol6:
+        L_hx_in = st.number_input("HX Length (Inches)", value=36)
+        
+    calculate_clicked = st.button("🚀 Calculate Sizing Parameters", use_container_width=True)
 
 with col2:
     st.subheader("📊 Performance & Sizing Results")
     
     approx_watts = btu_h * 0.23
-    st.metric(label="Estimated Electrical Power Input", value=f"~{approx_watts:.1f} Watts", delta=f"{approx_watts/746:.3f} HP Equivalency", delta_color="off")
+    st.metric(label="Estimated Electrical Power Input", value=f"~{approx_watts:.1f} W", delta=f"{approx_watts/746:.3f} HP", delta_color="off")
     
     st.markdown("---")
     
@@ -115,11 +175,11 @@ with col2:
             L_c_feet = (pi_1 * D_c) / 0.3048
             L_c_meters = L_c_feet * 0.3048
             
-            st.info(f"📋 **Selected Target Profile:** {btu_h} Btu/h using {refrigerant} through a {tube_id_in}\" ID tube.")
-            st.success(f"📏 **Calculated Length (Feet):** {L_c_feet:.2f} ft")
-            st.success(f"🌐 **Calculated Length (Meters):** {L_c_meters:.2f} m")
+            st.info(f"📋 **Target Profile:** {btu_h} Btu/h | {refrigerant} | {tube_id_in}\" ID")
+            st.success(f"📏 **Calculated Length:** {L_c_feet:.2f} ft")
+            st.success(f"🌐 **Calculated Length:** {L_c_meters:.2f} m")
             
         except Exception as e:
-            st.error(f"Sizing Error: Verify thermodynamic boundary points. Details: {e}")
+            st.error(f"Sizing Error: Verify thermodynamics parameters. Details: {e}")
     else:
-        st.warning("👈 Configure system metrics on the left and click 'Calculate' to see the target physical parameters.")
+        st.warning("👈 Configure system metrics on the left and click 'Calculate'.")
