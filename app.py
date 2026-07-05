@@ -21,8 +21,7 @@ refrigerant = st.selectbox("Select Refrigerant Molecule", ["R134a", "R600a", "R2
 # Thermal Capacity and Electrical Input mapping
 btu_h = st.number_input("System Thermal Capacity (Btu/h)", min_value=100, max_value=50000, value=1000, step=50)
 
-# Approximate Compressor Electrical Power Rule of Thumb (starting from 0.15 Coefficient Baseline)
-# W_elec approx = (Btu/h / EER). EER at LBP is ~4.0 to 4.5. 0.22 to 0.25 Watts per Btu/h.
+# Approximate Compressor Electrical Power Draw Calculation
 approx_watts = btu_h * 0.23
 st.info(f"⚡ **Estimated Compressor Electrical Power Draw:** ~{approx_watts:.1f} Watts (Approx. {approx_watts/746:.3f} HP Mechanical Input Equivalency)")
 
@@ -65,17 +64,17 @@ if st.button("Calculate Required Length"):
         mu_gc = CP.PropsSI('V', 'T', T_cond, 'Q', 1, refrigerant)
         
         # Dimensionless Pi parameter resolution
-        pi_3 = L_hx / D_c[cite: 2]
-        pi_5 = (P_cond * (D_c**2)) / ((mu_fc**2) * v_fc)[cite: 2]
-        pi_6 = (P_suct * (D_c**2)) / ((mu_fc**2) * v_fc)[cite: 2]
-        pi_7 = (dT_sc * Cp_fc * (D_c**2)) / ((mu_fc**2) * (v_fc**2))[cite: 2]
-        pi_8 = (dT_sh * Cp_fc * (D_c**2)) / ((mu_fc**2) * (v_fc**2))[cite: 2]
-        pi_11 = (mu_fc - mu_gc) / mu_fc[cite: 2]
-        pi_9 = m_dot / (D_c * mu_fc)[cite: 2]
+        pi_3 = L_hx / D_c
+        pi_5 = (P_cond * (D_c**2)) / ((mu_fc**2) * v_fc)
+        pi_6 = (P_suct * (D_c**2)) / ((mu_fc**2) * v_fc)
+        pi_7 = (dT_sc * Cp_fc * (D_c**2)) / ((mu_fc**2) * (v_fc**2))
+        pi_8 = (dT_sh * Cp_fc * (D_c**2)) / ((mu_fc**2) * (v_fc**2))
+        pi_11 = (mu_fc - mu_gc) / mu_fc
+        pi_9 = m_dot / (D_c * mu_fc)
         
         # Sizing empirical balance
-        coefficient_product = (0.07602 * (pi_3**0.07751) * (pi_5**0.7342) * (pi_6**-0.1204) * (pi_7**0.03774) * (pi_8**-0.04085) * (pi_11**0.1768))[cite: 2]
-        pi_1 = (pi_9 / coefficient_product) ** (1 / -0.4583)[cite: 2]
+        coefficient_product = (0.07602 * (pi_3**0.07751) * (pi_5**0.7342) * (pi_6**-0.1204) * (pi_7**0.03774) * (pi_8**-0.04085) * (pi_11**0.1768))
+        pi_1 = (pi_9 / coefficient_product) ** (1 / -0.4583)
         
         L_c_feet = (pi_1 * D_c) / 0.3048
         L_c_meters = L_c_feet * 0.3048
